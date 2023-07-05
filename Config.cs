@@ -15,5 +15,7 @@ namespace DoorLockingCoins_EXILED
         [Description("Whether or not debug messages should be shown in the console.")]
         public bool Debug { get; set; } = false;
         public int lockSeconds { get; set; } = 60;
+        [Description("Whether or not should the plugin work on keycard doors. Disable if you installed RemoteKeycard.")]
+        public bool checkInventoryForKeycards { get; set; } = true;
     }
 }
