@@ -1,6 +1,9 @@
 # Ignore VS stuff
 .vs
 
+# Ignore VS references
+references/
+
 # Ignore build dirs
 bin/
 obj/
