@@ -1,10 +1,5 @@
 ﻿using Exiled.API.Interfaces;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DoorLockingCoins_EXILED
 {
@@ -18,5 +13,7 @@ namespace DoorLockingCoins_EXILED
         public int lockSeconds { get; set; } = 60;
         [Description("Whether or not should the plugin work on keycard doors. Disable if you installed RemoteKeycard.")]
         public bool checkInventoryForKeycards { get; set; } = true;
+        [Description("Whether or not coins should lock gates.")]
+        public bool affectGates { get; set; } = true;
     }
 }

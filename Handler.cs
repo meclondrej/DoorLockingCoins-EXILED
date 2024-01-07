@@ -2,6 +2,7 @@
 using Exiled.API.Features.Items;
 using Exiled.API.Enums;
 using Exiled.Events.EventArgs.Player;
+using Exiled.API.Features.Doors;
 using InventorySystem;
 using System.Linq;
 using System;
@@ -24,11 +25,23 @@ namespace DoorLockingCoins_EXILED
                 Player player = e.Player;
                 if (player.CurrentItem == null || player.CurrentItem.Type != ItemType.Coin)
                 {
-                    Log.Debug("Door interaction with no coin in hand triggered");
+                    Log.Debug("Interaction with no coin in hand triggered");
                     return;
                 }
-                bool perms = false;
-                if ((door.IsKeycardDoor || door.IsGate || door.IsCheckpoint) && config.checkInventoryForKeycards)
+                if (!(
+                    !(!config.affectGates && door.IsGate)
+                    && !door.IsElevator
+                    && !door.IsPartOfCheckpoint
+                    && !door.IsLocked
+                    && !(door is BreakableDoor breakableDoor && breakableDoor.IsDestroyed)
+                    && door.IsFullyOpen
+                ))
+                {
+                    Log.Debug("Interaction on incompatible door triggered");
+                    return;
+                }
+                bool perms = e.IsAllowed;
+                if (config.checkInventoryForKeycards && !perms)
                 {
                     Inventory inv = player.Inventory;
                     for (int i = 0; i < inv.UserInventory.Items.Count; i++)
@@ -36,17 +49,14 @@ namespace DoorLockingCoins_EXILED
                         Item x = Item.Get(inv.UserInventory.Items.Values.ElementAt(i));
                         if (x.Category != ItemCategory.Keycard)
                             continue;
-                        Keycard keycard = (Keycard) x;
+                        Keycard keycard = (Keycard)x;
                         bool hasAll = true;
                         foreach (Interactables.Interobjects.DoorUtils.KeycardPermissions p in Enum.GetValues(typeof(Interactables.Interobjects.DoorUtils.KeycardPermissions)))
                         {
-                            if (door.RequiredPermissions.RequiredPermissions.HasFlag(p))
+                            if (door.RequiredPermissions.RequiredPermissions.HasFlag(p) && !keycard.Base.Permissions.HasFlag(p))
                             {
-                                if (!keycard.Base.Permissions.HasFlag(p))
-                                {
-                                    hasAll = false;
-                                    break;
-                                }
+                                hasAll = false;
+                                break;
                             }
                         }
                         if (hasAll)
@@ -56,27 +66,18 @@ namespace DoorLockingCoins_EXILED
                         }
                     }
                 }
-                Item item = player.CurrentItem;
-                if (
-                    (
-                       e.IsAllowed
-                       || perms
-                    )
-                    && !door.IsLocked
-                    && door.IsFullyOpen
-                    && !door.IsBroken
-                    && !door.IsElevator
-                )
+                if (!perms)
                 {
-                    if (!e.IsAllowed)
-                        e.IsAllowed = true;
-                    door.Lock(config.lockSeconds, DoorLockType.NoPower);
-                    player.RemoveItem(item);
-                    Log.Debug("Door interaction with coin triggered and successful");
+                    Log.Debug("Door interaction with invalid permissions triggered");
+                    return;
                 }
-                else
-                    Log.Debug("Door interaction with coin triggered and unsuccessful");
-            } catch (Exception ex)
+                if (!e.IsAllowed)
+                    e.IsAllowed = true;
+                door.Lock(config.lockSeconds, DoorLockType.NoPower);
+                player.RemoveItem(player.CurrentItem);
+                Log.Debug("Door interaction successful");
+            }
+            catch (Exception ex)
             {
                 Log.Debug($"An exception occured: {ex.Message}\n{ex.StackTrace}");
             }
